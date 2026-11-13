@@ -1,98 +1,82 @@
 plugins {
-  alias(libs.plugins.android.application)
-  alias(libs.plugins.compose.compiler)
-  alias(libs.plugins.kotlin.serialization)
-  alias(libs.plugins.ksp)
-  alias(libs.plugins.hilt)
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
+    id("com.google.devtools.ksp")
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 android {
-    namespace = "com.example.spenzo"
-    compileSdk = 36
+    namespace = "com.spenzo"
+    compileSdk = 35
+
     defaultConfig {
-        applicationId = "com.example.spenzo"
-        minSdk = 24
-        targetSdk = 36
+        applicationId = "com.spenzo"
+        minSdk = 26
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    buildFeatures {
-      compose = true
-      aidl = false
-      buildConfig = false
-      shaders = false
+
+    kotlinOptions {
+        jvmTarget = "17"
     }
 
-    packaging {
-      resources {
-        excludes += "/META-INF/{AL2.0,LGPL2.1}"
-      }
+    buildFeatures {
+        compose = true
+        buildConfig = true
     }
 }
 
-
+// Room schema export: without it there is no safe path to a future migration.
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
 
 dependencies {
-  val composeBom = platform(libs.androidx.compose.bom)
-  implementation(composeBom)
-  androidTestImplementation(composeBom)
+    // Compose BOM
+    implementation(platform("androidx.compose:compose-bom:2024.06.00"))
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-graphics")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material:material-icons-extended")
 
-  // Core Android dependencies
-  implementation(libs.androidx.core.ktx)
-  implementation(libs.androidx.lifecycle.runtime.ktx)
-  implementation(libs.androidx.activity.compose)
+    // Navigation
+    implementation("androidx.navigation:navigation-compose:2.7.7")
 
-  // Arch Components
-  implementation(libs.androidx.lifecycle.runtime.compose)
-  implementation(libs.androidx.lifecycle.viewmodel.compose)
+    // Lifecycle + ViewModel
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.3")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.3")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.3")
 
-  // Compose
-  implementation(libs.androidx.compose.ui)
-  implementation(libs.androidx.compose.ui.tooling.preview)
-  implementation(libs.androidx.compose.material3)
-  // Tooling
-  debugImplementation(libs.androidx.compose.ui.tooling)
-  // Instrumented tests
-  androidTestImplementation(libs.androidx.compose.ui.test.junit4)
-  debugImplementation(libs.androidx.compose.ui.test.manifest)
+    // Room
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+    ksp("androidx.room:room-compiler:2.6.1")
 
-  // Local tests: jUnit, coroutines, Android runner
-  testImplementation(libs.junit)
-  testImplementation(libs.kotlinx.coroutines.test)
+    // Coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 
-  // Instrumented tests: jUnit rules and runners
-  androidTestImplementation(libs.androidx.test.core)
-  androidTestImplementation(libs.androidx.test.ext.junit)
-  androidTestImplementation(libs.androidx.test.runner)
-  androidTestImplementation(libs.androidx.test.espresso.core)
+    // Core
+    implementation("androidx.core:core-ktx:1.13.1")
+    implementation("androidx.activity:activity-compose:1.9.0")
 
-  // Navigation
-  implementation(libs.androidx.navigation.compose)
-  implementation(libs.androidx.navigation3.runtime)
-  implementation(libs.androidx.navigation3.ui)
+    // Unit tests (money/date logic must not regress silently)
+    testImplementation("junit:junit:4.13.2")
 
-  // Room
-  implementation(libs.androidx.room.runtime)
-  implementation(libs.androidx.room.ktx)
-  ksp(libs.androidx.room.compiler)
-
-  // Hilt
-  implementation(libs.hilt.android)
-  ksp(libs.hilt.compiler)
-  implementation(libs.androidx.hilt.navigation.compose)
-
-  // Icons and Datetime
-  implementation(libs.androidx.compose.material.icons.extended)
-  implementation(libs.kotlinx.datetime)
+    // Debug
+    debugImplementation("androidx.compose.ui:ui-tooling")
 }
