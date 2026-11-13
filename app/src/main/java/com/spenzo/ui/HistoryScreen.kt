@@ -36,6 +36,7 @@ fun HistoryScreen(nav: NavHostController, vm: TransactionViewModel) {
     var filter by remember { mutableStateOf(TxFilter.ALL) }
     var pendingDelete by remember { mutableStateOf<TransactionEntity?>(null) }
 
+    // Efficient filtering using derivedStateOf - only recomputes when inputs change
     val filtered by remember(all, query, filter) {
         derivedStateOf {
             val q = query.trim()
@@ -59,10 +60,9 @@ fun HistoryScreen(nav: NavHostController, vm: TransactionViewModel) {
         Modifier
             .fillMaxSize()
             .background(c.background)
-            .statusBarsPadding()
             .padding(horizontal = Space.xl),
     ) {
-        Spacer(Modifier.height(Space.lg))
+        Spacer(Modifier.height(Space.xxl))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("History", style = MaterialTheme.typography.headlineMedium, color = c.textPrimary)
             Spacer(Modifier.width(Space.sm))
@@ -74,52 +74,60 @@ fun HistoryScreen(nav: NavHostController, vm: TransactionViewModel) {
         }
         Spacer(Modifier.height(Space.md))
 
-        OutlinedTextField(
-            value = query,
-            onValueChange = { query = it },
-            placeholder = { Text("Search name, note or category", color = c.textSecondary) },
-            leadingIcon = { Icon(Icons.Rounded.Search, null, tint = c.textSecondary) },
-            trailingIcon = {
-                if (query.isNotBlank()) {
-                    IconButton({ query = "" }) { Icon(Icons.Rounded.Close, null, tint = c.textPrimary) }
-                }
-            },
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = c.card,
-                unfocusedContainerColor = c.card,
-                focusedBorderColor = c.income,
-                unfocusedBorderColor = c.border,
-                focusedTextColor = c.textPrimary,
-                unfocusedTextColor = c.textPrimary,
-            ),
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            shape = RoundedCornerShape(Radius.pill),
-        )
+        // Optimized search bar with filter chips inline
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Space.sm)) {
+            // Search field
+            OutlinedTextField(
+                value = query,
+                onValueChange = { query = it },
+                placeholder = { Text("Search name, note, category", color = c.textSecondary) },
+                leadingIcon = { Icon(Icons.Rounded.Search, null, tint = c.textSecondary) },
+                trailingIcon = {
+                    if (query.isNotBlank()) {
+                        IconButton({ query = "" }) { Icon(Icons.Rounded.Close, null, tint = c.textPrimary) }
+                    }
+                },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = c.card,
+                    unfocusedContainerColor = c.card,
+                    focusedBorderColor = c.income,
+                    unfocusedBorderColor = c.border,
+                    focusedTextColor = c.textPrimary,
+                    unfocusedTextColor = c.textPrimary,
+                ),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = RoundedCornerShape(Radius.pill),
+            )
 
-        Spacer(Modifier.height(Space.md))
-        Row(horizontalArrangement = Arrangement.spacedBy(Space.sm)) {
-            TxFilter.entries.forEach { option ->
-                FilterChip(
-                    selected = filter == option,
-                    onClick = { filter = option },
-                    label = { Text(option.label) },
-                    shape = RoundedCornerShape(Radius.pill),
-                    colors = FilterChipDefaults.filterChipColors(
-                        containerColor = c.card,
-                        labelColor = c.textSecondary,
-                        selectedContainerColor = c.primary,
-                        selectedLabelColor = c.onPrimary,
-                    ),
-                    border = FilterChipDefaults.filterChipBorder(
-                        enabled = true,
+            // Filter chips
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(Space.sm),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                TxFilter.entries.forEach { option ->
+                    FilterChip(
                         selected = filter == option,
-                        borderColor = c.border,
-                        selectedBorderColor = c.primary,
-                    ),
-                )
+                        onClick = { filter = option },
+                        label = { Text(option.label) },
+                        shape = RoundedCornerShape(Radius.pill),
+                        colors = FilterChipDefaults.filterChipColors(
+                            containerColor = c.card,
+                            labelColor = c.textSecondary,
+                            selectedContainerColor = c.primary,
+                            selectedLabelColor = c.onPrimary,
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = filter == option,
+                            borderColor = c.border,
+                            selectedBorderColor = c.primary,
+                        ),
+                    )
+                }
             }
         }
+
         Spacer(Modifier.height(Space.sm))
 
         when {

@@ -1,9 +1,8 @@
 package com.spenzo.ui
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -51,10 +50,9 @@ fun GraphsScreen(vm: TransactionViewModel) {
         Modifier
             .fillMaxSize()
             .background(c.background)
-            .statusBarsPadding()
             .padding(horizontal = Space.xl),
         verticalArrangement = Arrangement.spacedBy(Space.lg),
-        contentPadding = PaddingValues(top = Space.xl, bottom = 96.dp),
+        contentPadding = PaddingValues(top = Space.xxl, bottom = 96.dp),
     ) {
         item {
             Text("Graphs", style = MaterialTheme.typography.headlineMedium, color = c.textPrimary)

@@ -47,10 +47,9 @@ fun AnalysisScreen(vm: TransactionViewModel) {
         Modifier
             .fillMaxSize()
             .background(c.background)
-            .statusBarsPadding()
             .padding(horizontal = Space.xl),
         verticalArrangement = Arrangement.spacedBy(Space.md),
-        contentPadding = PaddingValues(top = Space.xl, bottom = 96.dp),
+        contentPadding = PaddingValues(top = Space.xxl, bottom = 96.dp),
     ) {
         item {
             Column {

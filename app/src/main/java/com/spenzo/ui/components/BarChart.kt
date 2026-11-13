@@ -1,38 +1,34 @@
 package com.spenzo.ui.components
 
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlin.math.ceil
 import kotlin.math.max
 
 data class BarPoint(val label: String, val value: Float)
 
 /**
- * Rounded bar chart drawn with Compose text, so labels scale with the device,
- * font settings and never collide.
- *
- * The previous charts used `android.graphics.Paint` with raw pixel sizes and
- * `Color.hashCode()` as the paint color; labels were ~7dp tall on real phones
- * and 31 daily bars printed every value on top of each other.
+ * Horizontally scrollable bar chart where every label is always visible.
+ * Uses LazyRow for smooth scrolling and proper label rendering.
+ * At least 10 bars fit on screen at once.
  */
 @Composable
 fun BarChart(
@@ -48,90 +44,78 @@ fun BarChart(
 ) {
     if (points.isEmpty()) return
 
-    val textMeasurer = rememberTextMeasurer()
     val haptics = LocalHapticFeedback.current
     val labelStyle = TextStyle(fontSize = 10.sp, color = labelColor)
     val valueStyle = TextStyle(fontSize = 9.sp, color = labelColor, fontWeight = FontWeight.SemiBold)
     val maxValue = points.maxOf { it.value }.coerceAtLeast(1f)
-    // Which bar can show its value when there is no room to label them all.
-    val tallest = points.indexOfFirst { it.value == maxValue }
 
-    Canvas(
-        modifier
-            .fillMaxWidth()
-            .height(height)
-            .pointerInput(points, onSelect) {
-                if (onSelect == null) return@pointerInput
-                detectTapGestures { offset ->
-                    val slot = size.width.toFloat() / points.size
-                    val index = (offset.x / slot).toInt().coerceIn(0, points.lastIndex)
-                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    onSelect(index)
-                }
-            }
+    // Ensure at least 10 bars fit on screen: min bar width = screen width / 10 - spacing
+    // With 4dp spacing and 8dp padding each side, available = width - 16 - (9 * 4) = width - 52
+    // So min bar width ≈ (width - 52) / 10. Use fixed min of 28dp to guarantee 10 fit on typical screens.
+    val barWidthDp = remember(points.size) {
+        // Minimum 28dp per bar ensures 10 bars fit even on small screens (360dp width)
+        // With 4dp spacing: 10 * 28 + 9 * 4 = 316dp, plus 16dp padding = 332dp < 360dp
+        val minWidth = 28.dp
+        val calculatedWidth = 320.dp / points.size.coerceAtLeast(1)
+        if (calculatedWidth.value > minWidth.value) calculatedWidth else minWidth
+    }
+
+    Box(modifier
+        .fillMaxWidth()
+        .height(height)
     ) {
-        val slot = size.width / points.size
-        val barWidth = (slot * 0.62f).coerceIn(4.dp.toPx(), 26.dp.toPx())
-        val topPad = if (showValueLabels) 20.dp.toPx() else 6.dp.toPx()
-        val bottomPad = 20.dp.toPx()
-        val chartHeight = (size.height - topPad - bottomPad).coerceAtLeast(1f)
-        val sampleLabelWidth = textMeasurer
-            .measure(AnnotatedString(points.first().label), labelStyle).size.width
-        val labelStep = max(1, ceil((sampleLabelWidth + 8.dp.toPx()) / slot).toInt())
+        // Scrollable bar chart - no axis line
+        LazyRow(
+            Modifier.fillMaxSize(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            contentPadding = PaddingValues(horizontal = 8.dp),
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            items(points, key = { it.label }) { point ->
+                val index = points.indexOf(point)
+                val alpha = if (selectedIndex < 0 || selectedIndex == index) 1f else 0.45f
+                val barHeightRatio = if (point.value > 0f) (point.value / maxValue) else 0f
 
-        drawLine(
-            color = labelColor.copy(alpha = 0.16f),
-            start = Offset(0f, topPad + chartHeight),
-            end = Offset(size.width, topPad + chartHeight),
-            strokeWidth = 1.dp.toPx(),
-        )
+                Column(
+                    Modifier
+                        .width(barWidthDp)
+                        .fillMaxHeight()
+                        .pointerInput(point, onSelect) {
+                            if (onSelect == null) return@pointerInput
+                            detectTapGestures { _ ->
+                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                onSelect(index)
+                            }
+                        }
+                        .wrapContentHeight(Alignment.Bottom),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Bottom,
+                ) {
+                    // Value label on top of bar - show for all days when enabled
+                    if (showValueLabels && point.value > 0f) {
+                        Text(
+                            text = valueLabel(point.value),
+                            style = valueStyle,
+                        )
+                        androidx.compose.foundation.layout.Spacer(Modifier.height(2.dp))
+                    }
 
-        var lastLabelRight = Float.NEGATIVE_INFINITY
-
-        points.forEachIndexed { index, point ->
-            val centerX = index * slot + slot / 2f
-            val alpha = if (selectedIndex < 0 || selectedIndex == index) 1f else 0.45f
-            val barHeight = if (point.value > 0f) (point.value / maxValue) * chartHeight else 0f
-
-            if (barHeight > 0f) {
-                drawRoundRect(
-                    color = barColor.copy(alpha = alpha),
-                    topLeft = Offset(centerX - barWidth / 2f, topPad + chartHeight - barHeight),
-                    size = Size(barWidth, barHeight),
-                    cornerRadius = CornerRadius(barWidth / 2f, barWidth / 2f),
-                )
-            }
-            // Empty days used to draw a 3dp tick each, which turned the axis
-            // into a dotted line that looked like data.
-
-            // Always label the tallest bar: without an axis the chart would
-            // otherwise have no scale at all.
-            val showValue = showValueLabels && barHeight > 0f &&
-                (points.size <= 15 || selectedIndex == index || index == tallest)
-            if (showValue) {
-                val layout = textMeasurer.measure(AnnotatedString(valueLabel(point.value)), valueStyle)
-                drawText(
-                    textLayoutResult = layout,
-                    topLeft = Offset(
-                        centerX - layout.size.width / 2f,
-                        topPad + chartHeight - barHeight - layout.size.height - 2.dp.toPx(),
-                    ),
-                )
-            }
-
-            if (index % labelStep == 0 || index == points.lastIndex) {
-                val layout = textMeasurer.measure(AnnotatedString(point.label), labelStyle)
-                // Keep the axis readable: clamp to the canvas and skip a label
-                // that would print on top of the previous one (31 bars used to
-                // end with "2930" as a single number).
-                val left = (centerX - layout.size.width / 2f)
-                    .coerceIn(0f, (size.width - layout.size.width).coerceAtLeast(0f))
-                if (left > lastLabelRight + 4.dp.toPx()) {
-                    drawText(
-                        textLayoutResult = layout,
-                        topLeft = Offset(left, size.height - layout.size.height),
+                    // Bar
+                    Box(
+                        Modifier
+                            .width((barWidthDp.value * 0.7f).dp.coerceIn(4.dp, 26.dp))
+                            .height((height.value * barHeightRatio).dp)
+                            .background(barColor.copy(alpha = alpha), RoundedCornerShape(999.dp))
                     )
-                    lastLabelRight = left + layout.size.width
+
+                    // Label below bar - always visible
+                    androidx.compose.foundation.layout.Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = point.label,
+                        style = labelStyle,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
         }
