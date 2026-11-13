@@ -26,7 +26,9 @@ fun HistoryScreen(nav: NavHostController, vm: TransactionViewModel = viewModel()
     var query by remember { mutableStateOf("") }
     var pendingDelete by remember { mutableStateOf<TransactionEntity?>(null) }
 
-    val filtered = all.filter { query.isBlank() || it.name.contains(query, true) }
+    val filtered = all.filter { query.isBlank() || it.name.contains(query, ignoreCase = true) }
+    val currencyFormat = formatCurrency()
+    val dateFormat = dateFormat("dd MMM")
 
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
         Spacer(Modifier.height(20.dp))
@@ -34,22 +36,47 @@ fun HistoryScreen(nav: NavHostController, vm: TransactionViewModel = viewModel()
         Spacer(Modifier.height(12.dp))
 
         OutlinedTextField(
-            value = query, onValueChange = { query = it },
+            value = query,
+            onValueChange = { query = it },
+            label = { Text("Search transactions") },
             placeholder = { Text("Search by name") },
-            leadingIcon = { Icon(Icons.Outlined.Search, null) },
+            leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
             trailingIcon = {
-                if (query.isNotBlank()) IconButton({ query = "" }) { Icon(Icons.Outlined.Close, null) }
+                if (query.isNotBlank())
+                    IconButton(onClick = { query = "" }, contentDescription = "Clear search") {
+                        Icon(Icons.Outlined.Close, contentDescription = null)
+                    }
             },
-            modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(50))
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            shape = RoundedCornerShape(50),
+            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Search)
+        )
 
         Spacer(Modifier.height(10.dp))
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp),
-            contentPadding = PaddingValues(bottom = 24.dp)) {
-            items(filtered, key = { it.id }) { tx ->
-                TransactionRow(
-                    tx = tx,
-                    onEdit = { nav.navigate("add_edit?txId=${tx.id}") },
-                    onDelete = { pendingDelete = tx })
+        if (filtered.isEmpty()) {
+            EmptyState(
+                icon = Icons.Outlined.SearchOff,
+                title = if (query.isBlank()) "No transactions yet" else "No matches found",
+                subtitle = if (query.isBlank()) "Tap + on Home to add your first transaction" else "Try a different search term",
+                actionLabel = if (query.isBlank()) "Add transaction" else "Clear search",
+                onAction = if (query.isBlank()) { nav.navigate("add_edit") } else { query = "" }
+            )
+        } else {
+            LazyColumn(
+                Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                contentPadding = PaddingValues(bottom = 24.dp)
+            ) {
+                items(filtered, key = { it.id }) { tx ->
+                    TransactionRow(
+                        tx = tx,
+                        onEdit = { nav.navigate("add_edit?txId=${tx.id}") },
+                        onDelete = { pendingDelete = tx },
+                        currencyFormat = currencyFormat,
+                        dateFormat = dateFormat
+                    )
+                }
             }
         }
     }
@@ -58,10 +85,10 @@ fun HistoryScreen(nav: NavHostController, vm: TransactionViewModel = viewModel()
         AlertDialog(
             onDismissRequest = { pendingDelete = null },
             title = { Text("Delete transaction?") },
-            text = { Text("\"" + tx.name + "\" will be permanently removed.") },
+            text = { Text("\"${tx.name}\" will be permanently removed.") },
             confirmButton = {
                 TextButton(onClick = { vm.delete(tx); pendingDelete = null }) {
-                    Text("Delete", color = ExpenseRed)
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = { TextButton(onClick = { pendingDelete = null }) { Text("Cancel") } })

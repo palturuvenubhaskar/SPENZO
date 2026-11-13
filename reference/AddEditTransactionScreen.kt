@@ -1,6 +1,6 @@
 package com.spenzo.ui
 
-import android.app.DatePickerDialog
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -15,7 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -30,9 +30,9 @@ import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddEditTransactionScreen(nav: NavHostController, txId: Long?,
-                             vm: TransactionViewModel = viewModel()) {
+fun AddEditTransactionScreen(nav: NavHostController, txId: Long?, vm: TransactionViewModel = viewModel()) {
     val context = LocalContext.current
+    val configuration = LocalConfiguration.current
     val scope = rememberCoroutineScope()
 
     var isExpense by remember { mutableStateOf(true) }
@@ -41,9 +41,12 @@ fun AddEditTransactionScreen(nav: NavHostController, txId: Long?,
     var note by remember { mutableStateOf("") }
     var category by remember { mutableStateOf(Category.FOOD.name) }
     var dateMillis by remember { mutableStateOf(System.currentTimeMillis()) }
+    var nameError by remember { mutableStateOf(false) }
+    var amountError by remember { mutableStateOf(false) }
+    var showDatePicker by remember { mutableStateOf(false) }
 
-    val dayFmt = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
-    val niceFmt = remember { SimpleDateFormat("dd MMM yyyy", Locale.getDefault()) }
+    val dayFmt = remember { SimpleDateFormat("yyyy-MM-dd", configuration.locale) }
+    val niceFmt = remember { SimpleDateFormat("dd MMM yyyy", configuration.locale) }
     val editing = txId != null && txId > 0
 
     // Load existing transaction when editing
@@ -65,80 +68,207 @@ fun AddEditTransactionScreen(nav: NavHostController, txId: Long?,
         if (categories.none { it.name == category }) category = categories.first().name
     }
 
+    val initialName = remember { mutableStateOf(name) }
+    val initialAmount = remember { mutableStateOf(amount) }
+    val initialCategory = remember { mutableStateOf(category) }
+    val initialDate = remember { mutableStateOf(dateMillis) }
+    val initialNote = remember { mutableStateOf(note) }
+    val initialIsExpense = remember { mutableStateOf(isExpense) }
+
+    LaunchedEffect(editing) {
+        if (editing) {
+            initialName.value = name
+            initialAmount.value = amount
+            initialCategory.value = category
+            initialDate.value = dateMillis
+            initialNote.value = note
+            initialIsExpense.value = isExpense
+        }
+    }
+
+    val hasUnsavedChanges = remember(name, amount, category, dateMillis, note, isExpense) {
+        derivedStateOf {
+            name != initialName.value ||
+            amount != initialAmount.value ||
+            category != initialCategory.value ||
+            dateMillis != initialDate.value ||
+            note != initialNote.value ||
+            isExpense != initialIsExpense.value
+        }
+    }
+
+    val isFormValid = remember(name, amount) {
+        derivedStateOf {
+            name.isNotBlank() && amount.toDoubleOrNull() != null
+        }
+    }
+
+    // Handle back press with unsaved changes confirmation
+    BackHandler(enabled = hasUnsavedChanges) {
+        // Could show a confirmation dialog here
+        // For now, allow back but could be enhanced
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(if (editing) "Edit transaction" else "Add transaction") },
                 navigationIcon = {
-                    IconButton(onClick = { nav.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back")
+                    IconButton(
+                        onClick = {
+                            if (hasUnsavedChanges) {
+                                // Show confirmation dialog
+                                // For now just navigate back
+                                nav.popBackStack()
+                            } else {
+                                nav.popBackStack()
+                            }
+                        },
+                        contentDescription = "Back"
+                    ) {
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = null)
                     }
-                })
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
+            )
         },
-        containerColor = Background
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
-        Column(Modifier.padding(padding).fillMaxSize().padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(
+            Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
 
-            // INCOME / EXPENSE toggle
-            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(50)).background(IconBackground).padding(4.dp)) {
-                listOf(true to "Expense", false to "Income").forEach { (exp, label) ->
-                    val sel = isExpense == exp
-                    Box(Modifier.weight(1f).clip(RoundedCornerShape(50))
-                        .background(if (sel) DarkCard else Color.Transparent)
-                        .clickable { isExpense = exp }.padding(vertical = 10.dp),
-                        contentAlignment = Alignment.Center) {
-                        Text(label, color = if (sel) Surface else TextSecondary, fontWeight = FontWeight.SemiBold)
-                    }
-                }
+            // INCOME / EXPENSE toggle using SegmentedButton
+            SegmentedButton(
+                selectedIndex = if (isExpense) 0 else 1,
+                onClick = { index -> isExpense = index == 0 },
+                modifier = Modifier.fillMaxWidth(),
+                singleChoice = true
+            ) {
+                SegmentedButtonItem(
+                    label = { Text("Expense") },
+                    selected = isExpense,
+                    onClick = { isExpense = true },
+                    colors = SegmentedButtonDefaults.segmentedButtonItemColors(
+                        containerColor = if (isExpense) MaterialTheme.colorScheme.primary else Color.Transparent,
+                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = if (isExpense) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                )
+                SegmentedButtonItem(
+                    label = { Text("Income") },
+                    selected = !isExpense,
+                    onClick = { isExpense = false },
+                    colors = SegmentedButtonDefaults.segmentedButtonItemColors(
+                        containerColor = if (!isExpense) MaterialTheme.colorScheme.primary else Color.Transparent,
+                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = if (!isExpense) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                )
             }
 
             OutlinedTextField(
-                value = name, onValueChange = { name = it },
+                value = name,
+                onValueChange = { name = it; nameError = it.isBlank() },
                 label = { Text("Name") },
                 placeholder = { Text(if (isExpense) "e.g. Lunch" else "e.g. Allowance") },
-                modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(14.dp))
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = RoundedCornerShape(14.dp),
+                isError = nameError,
+                supportingText = { if (nameError) Text("Name is required", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error) }
+            )
 
             OutlinedTextField(
-                value = amount, onValueChange = { amount = it.filter { c -> c.isDigit() || c == '.' } },
-                label = { Text("Amount") }, prefix = { Text("$ ") },
-                modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(14.dp))
+                value = amount,
+                onValueChange = {
+                    val filtered = it.filter { c -> c.isDigit() || c == '.' }
+                    val parts = filtered.split('.')
+                    amount = if (parts.size > 2) parts[0] + "." + parts.drop(1).joinToString("") else filtered
+                    amountError = amount.toDoubleOrNull() == null
+                },
+                label = { Text("Amount") },
+                prefix = { Text("$ ") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = RoundedCornerShape(14.dp),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                isError = amountError && amount.isNotBlank(),
+                supportingText = { if (amountError && amount.isNotBlank()) Text("Enter a valid amount", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error) }
+            )
 
             Text("Category", style = MaterialTheme.typography.titleMedium)
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            LazyRow(
+                Modifier.animateContentSize(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 items(categories, key = { it.name }) { cat ->
                     val sel = category == cat.name
-                    Row(Modifier.clip(RoundedCornerShape(50))
-                        .background(if (sel) DarkCard else Surface)
-                        .clickable { category = cat.name }
-                        .padding(horizontal = 14.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically) {
-                        Icon(cat.icon, cat.label, tint = if (sel) Surface else cat.color,
-                            modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text(cat.label, color = if (sel) Surface else TextPrimary,
-                            style = MaterialTheme.typography.labelSmall)
-                    }
+                    FilterChip(
+                        selected = sel,
+                        onClick = { category = cat.name },
+                        label = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(cat.icon, contentDescription = null, tint = if (sel) MaterialTheme.colorScheme.onPrimary else cat.color, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text(cat.label, color = if (sel) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.labelSmall)
+                            }
+                        },
+                        leadingIcon = if (sel) { Icon(Icons.Outlined.Check, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary) } else null,
+                        colors = FilterChipDefaults.colors(
+                            containerColor = if (sel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            labelColor = if (sel) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                            leadingIconColor = MaterialTheme.colorScheme.onPrimary
+                        ),
+                        shape = RoundedCornerShape(50)
+                    )
                 }
             }
 
-            val cal = Calendar.getInstance().apply { timeInMillis = dateMillis }
+            // Date picker using Compose Material3 DatePickerDialog
+            val datePickerState = remember { DatePickerDialog().state }
+
             OutlinedButton(
-                onClick = {
-                    DatePickerDialog(context,
-                        { _, y, m, d -> cal.set(y, m, d); dateMillis = cal.timeInMillis },
-                        cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show()
-                },
-                modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) {
-                Icon(Icons.Outlined.CalendarMonth, null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text(niceFmt.format(Date(dateMillis)))
+                onClick = { showDatePicker = true },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Outlined.CalendarMonth, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(niceFmt.format(Date(dateMillis)))
+                }
+            }
+
+            DatePickerDialog(
+                state = datePickerState,
+                onDismissRequest = { showDatePicker = false },
+                confirmButton = { Text("OK") },
+                dismissButton = { Text("Cancel") }
+            ) { showDatePicker }
+
+            LaunchedEffect(datePickerState.date) {
+                datePickerState.date?.let { localDate ->
+                    val cal = Calendar.getInstance().apply {
+                        set(localDate.year, localDate.monthValue - 1, localDate.dayOfMonth)
+                    }
+                    dateMillis = cal.timeInMillis
+                }
             }
 
             OutlinedTextField(
-                value = note, onValueChange = { note = it },
+                value = note,
+                onValueChange = { note = it },
                 label = { Text("Note (optional)") },
-                modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp))
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                maxLines = 3
+            )
 
             Spacer(Modifier.weight(1f))
 
@@ -153,7 +283,8 @@ fun AddEditTransactionScreen(nav: NavHostController, txId: Long?,
                         type = if (isExpense) TxType.EXPENSE else TxType.INCOME,
                         note = note,
                         dayLabel = dayFmt.format(Date(dateMillis)),
-                        timestamp = dateMillis)
+                        timestamp = dateMillis
+                    )
                     scope.launch {
                         if (editing) vm.update(tx) else vm.add(tx)
                         nav.popBackStack()
@@ -161,9 +292,14 @@ fun AddEditTransactionScreen(nav: NavHostController, txId: Long?,
                 },
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape = RoundedCornerShape(50),
-                colors = ButtonDefaults.buttonColors(containerColor = DarkCard)) {
-                Text(if (editing) "Save changes" else "Add transaction",
-                    color = Surface, fontWeight = FontWeight.SemiBold)
+                enabled = isFormValid,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4),
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            ) {
+                Text(if (editing) "Save changes" else "Add transaction", fontWeight = FontWeight.SemiBold)
             }
             Spacer(Modifier.height(8.dp))
         }

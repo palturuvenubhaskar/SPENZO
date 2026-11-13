@@ -13,6 +13,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -43,23 +45,24 @@ fun AnalysisScreen(vm: TransactionViewModel = viewModel()) {
     val savingsRate = if (ie.income > 0) ((ie.income - ie.expense) / ie.income * 100) else 0.0
     val avgDaily = ie.expense / 30.0
 
-    LazyColumn(Modifier.fillMaxSize().padding(horizontal = 20.dp),
+    LazyColumn(
+        Modifier.fillMaxSize().padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
-        contentPadding = PaddingValues(top = 20.dp, bottom = 24.dp)) {
+        contentPadding = PaddingValues(top = 20.dp, bottom = 24.dp)
+    ) {
 
         item { Text("Analysis", style = MaterialTheme.typography.titleLarge) }
 
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                StatCard("Savings rate", "%.0f%%".format(savingsRate),
-                    if (savingsRate >= 0) AccentGreen else ExpenseRed, Modifier.weight(1f))
-                StatCard("Avg daily spend", "$" + "%.0f".format(avgDaily), DarkCard, Modifier.weight(1f))
+                StatCard("Savings rate", formatPercent(savingsRate), if (savingsRate >= 0) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.error, Modifier.weight(1f))
+                StatCard("Avg daily spend", formatCurrency(avgDaily), MaterialTheme.colorScheme.primary, Modifier.weight(1f))
             }
         }
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                StatCard("Income", "$" + "%.0f".format(ie.income), AccentGreen, Modifier.weight(1f))
-                StatCard("Expenses", "$" + "%.0f".format(ie.expense), ExpenseRed, Modifier.weight(1f))
+                StatCard("Income", formatCurrency(ie.income), MaterialTheme.colorScheme.secondary, Modifier.weight(1f))
+                StatCard("Expenses", formatCurrency(ie.expense), MaterialTheme.colorScheme.error, Modifier.weight(1f))
             }
         }
 
@@ -69,33 +72,54 @@ fun AnalysisScreen(vm: TransactionViewModel = viewModel()) {
             val cat = expenseCategories[i]
             val spent = cats.firstOrNull { it.category == cat.name }?.total ?: 0.0
             val budget = BudgetStore.budget(context, cat.name).toDouble()
-            val pct = (spent / budget).toFloat().coerceIn(0f, 1f)
+            val pct = if (budget > 0) (spent / budget).coerceIn(0.0, 1.0) else 0.0
             val barColor = when {
-                pct >= 1f -> ExpenseRed
-                pct >= 0.8f -> AccentOrange
-                else -> AccentGreen
+                pct >= 1.0 -> MaterialTheme.colorScheme.error
+                pct >= 0.8 -> MaterialTheme.colorScheme.tertiary
+                else -> MaterialTheme.colorScheme.secondary
             }
-            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Surface)
-                .clickable {
+
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .padding(14.dp),
+                onClick = {
                     editingBudgetFor = cat
                     budgetInput = budget.toInt().toString()
-                }.padding(14.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(34.dp).clip(CircleShape).background(IconBackground),
-                        contentAlignment = Alignment.Center) {
-                        Icon(cat.icon, cat.label, tint = cat.color, modifier = Modifier.size(16.dp))
+                },
+                role = Role.Button
+            ) {
+                Column {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            Modifier.size(34.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(cat.icon, contentDescription = cat.label, tint = cat.color, modifier = Modifier.size(16.dp))
+                        }
+                        Spacer(Modifier.width(10.dp))
+                        Text(
+                            cat.label,
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            "${formatCurrency(spent)} / ${formatCurrency(budget)}  · tap to edit",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
-                    Spacer(Modifier.width(10.dp))
-                    Text(cat.label, modifier = Modifier.weight(1f),
-                        style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                    Text("$" + "%.0f".format(spent) + " / $" + "%.0f".format(budget) +
-                        "  · tap to edit", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
-                }
-                Spacer(Modifier.height(10.dp))
-                Box(Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(50))
-                    .background(ProgressTrack)) {
-                    Box(Modifier.fillMaxWidth(pct).fillMaxHeight().clip(RoundedCornerShape(50))
-                        .background(barColor))
+                    Spacer(Modifier.height(10.dp))
+                    // Accessible progress bar
+                    ProgressIndicator(
+                        progress = pct.toFloat(),
+                        color = barColor,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier.fillMaxWidth().height(8.dp),
+                        contentDescription = "${cat.label} budget: ${(pct * 100).toInt()}% used"
+                    )
                 }
             }
         }
@@ -107,8 +131,13 @@ fun AnalysisScreen(vm: TransactionViewModel = viewModel()) {
             title = { Text("Monthly budget for ${cat.label}") },
             text = {
                 OutlinedTextField(
-                    value = budgetInput, onValueChange = { budgetInput = it.filter { c -> c.isDigit() } },
-                    prefix = { Text("$ ") }, singleLine = true)
+                    value = budgetInput,
+                    onValueChange = { budgetInput = it.filter { it.isDigit() } },
+                    label = { Text("Budget amount") },
+                    prefix = { Text("$ ") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number)
+                )
             },
             confirmButton = {
                 TextButton(onClick = {
@@ -116,17 +145,23 @@ fun AnalysisScreen(vm: TransactionViewModel = viewModel()) {
                     editingBudgetFor = null
                 }) { Text("Save") }
             },
-            dismissButton = { TextButton(onClick = { editingBudgetFor = null }) { Text("Cancel") } })
+            dismissButton = { TextButton(onClick = { editingBudgetFor = null }) { Text("Cancel") } }
+        )
     }
 }
 
 @Composable
 private fun StatCard(title: String, value: String, color: Color, modifier: Modifier = Modifier) {
-    Column(modifier.clip(RoundedCornerShape(16.dp)).background(Surface).padding(16.dp)) {
+    Column(
+        modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(16.dp)
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(8.dp).clip(CircleShape).background(color))
             Spacer(Modifier.width(6.dp))
-            Text(title, style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+            Text(title, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Spacer(Modifier.height(6.dp))
         Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
