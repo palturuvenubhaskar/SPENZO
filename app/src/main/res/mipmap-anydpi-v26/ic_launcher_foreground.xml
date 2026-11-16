@@ -4,11 +4,12 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Simple "S" letter icon for Spenzo -->
+    <!-- Spenzo's rounded S mark: a clear, continuous path for everyday money flow. -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M54,28 C44,28 36,34 36,42 C36,50 44,54 54,56 C64,58 72,62 72,70 C72,78 64,84 54,84 C44,84 36,78 36,70"
-        android:strokeWidth="5"
-        android:strokeColor="#FFFFFF"
-        android:fillType="nonZero"/>
+        android:fillColor="@android:color/transparent"
+        android:pathData="M68,35 C64,31 59,30 52,30 L50,30 C41,30 35,36 35,43 C35,50 40,54 51,57 L55,58 C67,61 73,65 73,72 C73,79 67,84 57,84 L40,84"
+        android:strokeWidth="7"
+        android:strokeColor="#3DDC97"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"/>
 </vector>
