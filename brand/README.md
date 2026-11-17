@@ -32,8 +32,14 @@ The mint matches the app's dark-theme primary color. The slate gives the launche
 
 ## Source files
 
-- `spenzo-mark.svg` — scalable master mark.
-- `spenzo-mark-white.svg` — reverse mark for dark backgrounds.
-- `spenzo-mark-black.svg` — one-color mark for light backgrounds and monochrome output.
-- `../app/src/main/res/mipmap-anydpi-v26/ic_launcher_foreground.xml` — Android adaptive foreground vector.
-- `../app/src/main/res/values/ic_launcher_background.xml` — launcher background color.
+- `spenzo-mark.svg` - scalable master mark.
+- `spenzo-mark-white.svg` - reverse mark for dark backgrounds.
+- `spenzo-mark-black.svg` - one-color mark for light backgrounds and monochrome output.
+- `spenzo-icon.svg` - full app icon (mark on the navy radial field).
+- `spenzo-icon-512.png` - 512 px store icon.
+- `../app/src/main/res/drawable/ic_launcher_background.xml` - adaptive background (navy radial gradient).
+- `../app/src/main/res/drawable/ic_launcher_foreground.xml` - adaptive foreground (mint gradient S).
+- `../app/src/main/res/drawable/ic_launcher_monochrome.xml` - themed-icon layer.
+- `../tools/logo.py` - regenerates every file above (`python tools/logo.py`).
+
+The icon ships as an adaptive icon only: `minSdk` is 26, so no density-specific PNG fallbacks are needed and the mark stays crisp at every launcher size.

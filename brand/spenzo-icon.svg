@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" role="img" aria-labelledby="title desc">
+  <title id="title">Spenzo app icon</title>
+  <desc id="desc">The Spenzo S in mint on deep navy.</desc>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="48%" r="69%">
+      <stop offset="0" stop-color="#1B3348"/>
+      <stop offset="1" stop-color="#060C13"/>
+    </radialGradient>
+    <linearGradient id="fg" x1="0" y1="22%" x2="0" y2="78%">
+      <stop offset="0" stop-color="#4AE6B0"/>
+      <stop offset="1" stop-color="#1A9E74"/>
+    </linearGradient>
+  </defs>
+  <rect width="108" height="108" fill="url(#bg)"/>
+  <path d="M65.01,37.9 C60.78,32.82 55.69,30.28 49.76,30.28 C42.14,30.28 36.21,35.36 36.21,42.99 C36.21,50.61 41.29,54 52.31,56.54 C63.32,59.08 68.4,62.47 68.4,68.4 C68.4,75.18 62.47,80.26 54,80.26 C48.07,80.26 43.83,80.26 39.6,77.72"
+        fill="none" stroke="url(#fg)" stroke-width="11.01" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

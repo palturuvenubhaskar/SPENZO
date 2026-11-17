@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" role="img" aria-labelledby="title desc">
   <title id="title">Spenzo mark</title>
-  <desc id="desc">A rounded emerald S drawn as one continuous path.</desc>
-  <path d="M68 35C64 31 59 30 52 30h-2c-9 0-15 6-15 13 0 7 5 11 16 14l4 1c12 3 18 7 18 14 0 7-6 12-16 12H40"
-        fill="none" stroke="#3DDC97" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <desc id="desc">A single monoline S for everyday money flow.</desc>
+  <path d="M65.01,37.9 C60.78,32.82 55.69,30.28 49.76,30.28 C42.14,30.28 36.21,35.36 36.21,42.99 C36.21,50.61 41.29,54 52.31,56.54 C63.32,59.08 68.4,62.47 68.4,68.4 C68.4,75.18 62.47,80.26 54,80.26 C48.07,80.26 43.83,80.26 39.6,77.72"
+        fill="none" stroke="#3DDC97" stroke-width="11.01" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

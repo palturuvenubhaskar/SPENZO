@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Themed-icon layer: the system tints this from its alpha channel. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="11.01"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M65.01,37.9 C60.78,32.82 55.69,30.28 49.76,30.28 C42.14,30.28 36.21,35.36 36.21,42.99 C36.21,50.61 41.29,54 52.31,56.54 C63.32,59.08 68.4,62.47 68.4,68.4 C68.4,75.18 62.47,80.26 54,80.26 C48.07,80.26 43.83,80.26 39.6,77.72" />
+</vector>
