@@ -25,7 +25,7 @@ class MoneyTest {
 
     @Test
     fun `negative amounts put the sign before the symbol`() {
-        assertEquals("-$12.00", Money.format(-12.0, "$"))
+        assertEquals("\u2212$12.00", Money.format(-12.0, "$"))
     }
 
     @Test
@@ -70,7 +70,7 @@ class MoneyTest {
 
     @Test
     fun `signed uses the transaction type`() {
-        assertEquals("-$5.00", Money.signed(5.0, "$", isExpense = true))
+        assertEquals("\u2212$5.00", Money.signed(5.0, "$", isExpense = true))
         assertEquals("+$5.00", Money.signed(5.0, "$", isExpense = false))
     }
 }

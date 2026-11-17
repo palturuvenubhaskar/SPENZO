@@ -12,9 +12,15 @@ import java.util.Locale
  * Amounts are still persisted as Double (changing the column would need a Room
  * migration), but every sum/rounding goes through integer cents so numbers
  * cannot drift, and the sign is always rendered in front of the symbol
- * (`-$12.00`, never `$-12.00`).
+ * (`−$12.00`, never `$−12.00`).
+ *
+ * The sign is U+2212 MINUS, not the hyphen on the keyboard: the hyphen sits
+ * too high and too short next to tabular figures and reads like a dash.
  */
 object Money {
+    /** U+2212 MINUS SIGN — the typographic minus, not "-". */
+    private const val MINUS = "\u2212"
+
     fun cents(value: Double): Long = (value * 100).roundToLong()
 
     fun fromCents(cents: Long): Double = cents / 100.0
@@ -22,16 +28,16 @@ object Money {
     /** Sums a list of Double amounts without accumulating float error. */
     fun sum(values: Iterable<Double>): Double = fromCents(values.sumOf { cents(it) })
 
-    /** `$1,234.56`, `-$12.00`, `₹0.00` */
+    /** `$1,234.56`, `−$12.00`, `₹0.00` */
     fun format(value: Double, symbol: String): String {
         val c = cents(value)
-        val sign = if (c < 0) "-" else ""
+        val sign = if (c < 0) MINUS else ""
         return sign + symbol + formatter.get()!!.format(abs(fromCents(c)))
     }
 
-    /** `+$1,234.56` / `-$12.00` — for transaction rows. */
+    /** `+$1,234.56` / `−$12.00` — for transaction rows. */
     fun signed(value: Double, symbol: String, isExpense: Boolean): String =
-        (if (isExpense) "-" else "+") + symbol + formatter.get()!!.format(abs(fromCents(cents(value))))
+        (if (isExpense) MINUS else "+") + symbol + formatter.get()!!.format(abs(fromCents(cents(value))))
 
     /**
      * `$304.50`, `$1.2k`, `$3.4M` — for tight tiles.

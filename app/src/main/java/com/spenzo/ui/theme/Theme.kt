@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
@@ -16,43 +17,118 @@ import androidx.compose.ui.unit.sp
 val LocalCurrencySymbol = compositionLocalOf { "$" }
 
 private val LightColors = lightColorScheme(
-    background   = Background,
-    surface      = Surface,
-    primary      = DarkCard,
-    onPrimary    = Surface,
-    secondary    = AccentGreen,
+    primary = Emerald700,
+    onPrimary = Surface,
+    primaryContainer = Emerald700.copy(alpha = 0.12f),
+    onPrimaryContainer = Emerald700,
+    secondary = AccentOrange,
+    onSecondary = Surface,
+    background = Background,
     onBackground = TextPrimary,
-    onSurface    = TextPrimary,
-    surfaceVariant = IconBackground,
+    surface = Surface,
+    onSurface = TextPrimary,
+    surfaceVariant = SurfaceSunken,
     onSurfaceVariant = TextSecondary,
-    outline      = BorderColor,
-    error        = ExpenseRed,
+    outline = BorderColor,
+    outlineVariant = BorderStrong,
+    error = ExpenseRed,
+    onError = Surface,
 )
 
 private val DarkColors = darkColorScheme(
-    background   = DarkBackground,
-    surface      = DarkSurface,
-    primary      = DarkTextPrimary,
-    onPrimary    = DarkBackground,
-    secondary    = AccentGreen,
+    primary = Mint400,
+    onPrimary = DarkBackground,
+    primaryContainer = Mint400.copy(alpha = 0.16f),
+    onPrimaryContainer = Mint400,
+    secondary = Amber400,
+    onSecondary = DarkBackground,
+    background = DarkBackground,
     onBackground = DarkTextPrimary,
-    onSurface    = DarkTextPrimary,
-    surfaceVariant = DarkIconBackground,
+    surface = DarkSurface,
+    onSurface = DarkTextPrimary,
+    surfaceVariant = DarkCardElevated,
     onSurfaceVariant = DarkTextSecondary,
-    outline      = DarkBorder,
-    error        = ExpenseRed,
+    outline = DarkBorder,
+    outlineVariant = DarkBorderStrong,
+    error = Rose400,
+    onError = DarkBackground,
 )
 
 private val SpenzoTypography = Typography(
-    headlineMedium = TextStyle(fontWeight = FontWeight.Bold, fontSize = 26.sp),
-    titleLarge     = TextStyle(fontWeight = FontWeight.Bold, fontSize = 20.sp),
-    titleMedium    = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 16.sp),
-    titleSmall     = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 14.sp),
-    bodyMedium     = TextStyle(fontSize = 14.sp),
-    bodySmall      = TextStyle(fontSize = 13.sp),
-    labelLarge     = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 13.sp),
-    labelMedium    = TextStyle(fontWeight = FontWeight.Medium, fontSize = 12.sp),
-    labelSmall     = TextStyle(fontSize = 12.sp),
+    displaySmall = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Bold,
+        fontSize = 36.sp,
+        lineHeight = 42.sp,
+        letterSpacing = (-0.8).sp,
+    ),
+    headlineLarge = TextStyle(
+        fontWeight = FontWeight.Bold,
+        fontSize = 30.sp,
+        lineHeight = 36.sp,
+        letterSpacing = (-0.5).sp,
+    ),
+    headlineMedium = TextStyle(
+        fontWeight = FontWeight.Bold,
+        fontSize = 26.sp,
+        lineHeight = 32.sp,
+        letterSpacing = (-0.4).sp,
+    ),
+    headlineSmall = TextStyle(
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 22.sp,
+        lineHeight = 28.sp,
+        letterSpacing = (-0.2).sp,
+    ),
+    titleLarge = TextStyle(
+        fontWeight = FontWeight.Bold,
+        fontSize = 19.sp,
+        lineHeight = 24.sp,
+        letterSpacing = (-0.1).sp,
+    ),
+    titleMedium = TextStyle(
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 16.sp,
+        lineHeight = 22.sp,
+    ),
+    titleSmall = TextStyle(
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 14.sp,
+        lineHeight = 20.sp,
+    ),
+    bodyLarge = TextStyle(
+        fontWeight = FontWeight.Normal,
+        fontSize = 15.sp,
+        lineHeight = 22.sp,
+    ),
+    bodyMedium = TextStyle(
+        fontWeight = FontWeight.Normal,
+        fontSize = 14.sp,
+        lineHeight = 21.sp,
+    ),
+    bodySmall = TextStyle(
+        fontWeight = FontWeight.Normal,
+        fontSize = 13.sp,
+        lineHeight = 19.sp,
+    ),
+    labelLarge = TextStyle(
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 13.sp,
+        lineHeight = 18.sp,
+        letterSpacing = 0.1.sp,
+    ),
+    labelMedium = TextStyle(
+        fontWeight = FontWeight.Medium,
+        fontSize = 12.sp,
+        lineHeight = 16.sp,
+        letterSpacing = 0.1.sp,
+    ),
+    labelSmall = TextStyle(
+        fontWeight = FontWeight.Medium,
+        fontSize = 11.sp,
+        lineHeight = 15.sp,
+        letterSpacing = 0.2.sp,
+    ),
 )
 
 @Composable
@@ -64,8 +140,8 @@ fun SpenzoTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable
     ) {
         MaterialTheme(
             colorScheme = colorScheme,
-            typography  = SpenzoTypography,
-            content     = content
+            typography = SpenzoTypography,
+            content = content
         )
     }
 }

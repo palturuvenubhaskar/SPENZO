@@ -6,19 +6,25 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.*
-import androidx.compose.material3.*
+import androidx.compose.material.icons.rounded.ArrowDownward
+import androidx.compose.material.icons.rounded.ArrowUpward
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Receipt
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -27,8 +33,12 @@ import androidx.navigation.NavHostController
 import com.spenzo.TransactionViewModel
 import com.spenzo.data.*
 import com.spenzo.ui.components.EmptyState
+import com.spenzo.ui.components.RowDivider
 import com.spenzo.ui.components.SectionHeader
-import com.spenzo.ui.components.StatTile
+import com.spenzo.ui.components.SpCard
+import com.spenzo.ui.components.SpPill
+import com.spenzo.ui.components.Stat
+import com.spenzo.ui.components.StatRow
 import com.spenzo.ui.components.TransactionRow
 import com.spenzo.ui.theme.*
 import java.time.LocalTime
@@ -55,9 +65,10 @@ fun HomeScreen(nav: NavHostController, vm: TransactionViewModel) {
         Modifier
             .fillMaxSize()
             .background(c.background)
-            .padding(horizontal = Space.xl),
-        verticalArrangement = Arrangement.spacedBy(Space.md),
-        contentPadding = PaddingValues(top = Space.xxl, bottom = 96.dp),
+            .statusBarsPadding()
+            .padding(horizontal = Insets.gutter),
+        verticalArrangement = Arrangement.spacedBy(Space.lg),
+        contentPadding = PaddingValues(top = Space.xxl, bottom = Insets.bottomContent),
     ) {
         item {
             Row(
@@ -65,12 +76,29 @@ fun HomeScreen(nav: NavHostController, vm: TransactionViewModel) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column {
-                    Text(greeting, style = MaterialTheme.typography.titleLarge, color = c.textPrimary)
-                    Text(Dates.prettyToday(), style = MaterialTheme.typography.labelMedium, color = c.textSecondary)
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        greeting,
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = c.textPrimary,
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        Dates.prettyToday(),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = c.textSecondary,
+                    )
                 }
-                IconButton(onClick = { nav.navigate("settings") }) {
-                    Icon(Icons.Rounded.Settings, "Settings", tint = c.textPrimary)
+                Box(
+                    Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(c.card)
+                        .border(BorderStroke(1.dp, c.border), CircleShape)
+                        .clickable { nav.navigate("settings") },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(Icons.Rounded.Settings, "Settings", tint = c.textPrimary, modifier = Modifier.size(21.dp))
                 }
             }
         }
@@ -82,30 +110,14 @@ fun HomeScreen(nav: NavHostController, vm: TransactionViewModel) {
                 hasPrevious = previous.expense > 0.0,
                 monthLabel = Dates.prettyMonth(month),
                 symbol = symbol,
-                onTopUp = { nav.navigate("add_edit?type=INCOME") },
-                onExpense = { nav.navigate("add_edit?type=EXPENSE") },
-                onHistory = { nav.navigate("history") },
+                spent = ie.expense,
+                income = ie.income,
             )
         }
 
         item {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Space.md)) {
-                StatTile("Income", Money.compact(ie.income, symbol), c.income, Modifier.weight(1f))
-                StatTile("Spent", Money.compact(ie.expense, symbol), c.expense, Modifier.weight(1f))
-                // `c.primary` is near-black in light mode, so the dot read as a
-                // smudge; savings are green when positive and red when negative.
-                StatTile(
-                    "Saved",
-                    Money.compact(ie.income - ie.expense, symbol),
-                    if (ie.income - ie.expense >= 0) c.income else c.expense,
-                    Modifier.weight(1f),
-                )
-            }
-        }
-
-        item {
             SectionHeader(
-                title = "Recent transactions",
+                title = "Recent activity",
                 actionLabel = if (transactions.isEmpty()) null else "View all",
                 onAction = { nav.navigate("history") },
                 modifier = Modifier.padding(top = Space.sm),
@@ -114,21 +126,30 @@ fun HomeScreen(nav: NavHostController, vm: TransactionViewModel) {
 
         if (transactions.isEmpty()) {
             item {
-                EmptyState(
-                    icon = Icons.Rounded.Receipt,
-                    title = "No transactions yet",
-                    message = "Add your first income or expense to see your balance, charts and budgets.",
-                    actionLabel = "Add transaction",
-                    onAction = { nav.navigate("add_edit?type=EXPENSE") },
-                )
+                SpCard(contentPadding = PaddingValues(0.dp)) {
+                    EmptyState(
+                        icon = Icons.Rounded.Receipt,
+                        title = "No transactions yet",
+                        message = "Add your first income or expense to see your balance, charts and budgets.",
+                        actionLabel = "Add transaction",
+                        onAction = { nav.navigate("add_edit?type=EXPENSE") },
+                    )
+                }
             }
         } else {
-            items(transactions.take(10), key = { it.id }) { tx ->
-                TransactionRow(
-                    tx = tx,
-                    onEdit = { nav.navigate("add_edit?txId=${tx.id}") },
-                    onDelete = { pendingDelete = tx },
-                )
+            item {
+                SpCard(contentPadding = PaddingValues(horizontal = Space.xs, vertical = Space.xs)) {
+                    transactions.take(8).forEachIndexed { index, tx ->
+                        TransactionRow(
+                            tx = tx,
+                            onEdit = { nav.navigate("add_edit?txId=${tx.id}") },
+                            onDelete = { pendingDelete = tx },
+                        )
+                        if (index < minOf(7, transactions.lastIndex)) {
+                            RowDivider(startIndent = 60)
+                        }
+                    }
+                }
             }
         }
     }
@@ -149,72 +170,145 @@ private fun BalanceCard(
     hasPrevious: Boolean,
     monthLabel: String,
     symbol: String,
-    onTopUp: () -> Unit,
-    onExpense: () -> Unit,
-    onHistory: () -> Unit,
+    spent: Double,
+    income: Double,
 ) {
-    val brush = Brush.verticalGradient(listOf(Color(0xFF1E2130), Color(0xFF111217)))
+    val c = SpTheme.colors
+    val shape = RoundedCornerShape(Radius.xl)
+    val spentLess = spentDelta <= 0.0
     val deltaText = when {
-        !hasPrevious -> "First month of tracking"
-        spentDelta <= 0.0 -> "${Money.format(-spentDelta, symbol)} less spent than last month"
-        else -> "${Money.format(spentDelta, symbol)} more spent than last month"
+        !hasPrevious -> ""
+        spentLess -> "${Money.format(-spentDelta, symbol)} less than last month"
+        else -> "${Money.format(spentDelta, symbol)} more than last month"
     }
+    val deltaColor = when {
+        !hasPrevious -> c.heroMuted
+        spentLess -> c.heroGlow
+        else -> Color(0xFFFF8A8A)
+    }
+    val showDelta = hasPrevious
+
+    // Softer, less vibrant colors for the hero card
+    val spentColor = Color(0xFFFF6B6B)   // softer red
+    val incomeColor = Color(0xFF6BCB77)  // softer green
+    val balanceColor = Color.White
 
     Box(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(Radius.xl))
-            .background(brush)
-            .border(BorderStroke(1.dp, Color(0xFF2A2D3A)), RoundedCornerShape(Radius.xl))
-            .padding(Space.xxl),
+            .clip(shape)
+            .background(Brush.verticalGradient(listOf(Color(0xFF0D1A2B), Color(0xFF14283E))))
+            .border(BorderStroke(1.dp, c.heroBorder), shape),
     ) {
-        Column(Modifier.fillMaxWidth()) {
+        // Soft accent glow
+        Box(
+            Modifier
+                .align(Alignment.TopEnd)
+                .size(220.dp)
+                .offset(x = 60.dp, y = (-70).dp)
+                .background(
+                    Brush.radialGradient(
+                        listOf(c.heroGlow.copy(alpha = 0.15f), Color.Transparent)
+                    )
+                )
+        )
+
+        Column(Modifier.fillMaxWidth().padding(Space.xxl)) {
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "Total balance",
+                    color = c.heroMuted,
+                    style = MaterialTheme.typography.labelMedium,
+                )
+                Spacer(Modifier.weight(1f))
+                Box(
+                    Modifier
+                        .clip(RoundedCornerShape(Radius.pill))
+                        .background(Color.White.copy(alpha = 0.10f))
+                        .padding(horizontal = Space.sm, vertical = 3.dp),
+                ) {
+                    Text(
+                        monthLabel,
+                        color = Color.White.copy(alpha = 0.88f),
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
+            }
+            Spacer(Modifier.height(Space.lg))
+
+            // SPENT — hero, centered, largest
             Text(
-                "Balance · $monthLabel",
-                color = Color.White.copy(alpha = 0.62f),
+                "SPENT",
+                color = c.heroMuted,
                 style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.fillMaxWidth().wrapContentWidth(Alignment.CenterHorizontally),
             )
             Spacer(Modifier.height(Space.xs))
             Text(
-                Money.format(balance, symbol),
-                color = Color.White,
-                fontSize = 34.sp,
+                Money.format(spent, symbol),
+                color = spentColor,
+                fontSize = 44.sp,
+                lineHeight = 52.sp,
+                letterSpacing = (-1).sp,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
+                modifier = Modifier.fillMaxWidth().wrapContentWidth(Alignment.CenterHorizontally),
             )
-            Spacer(Modifier.height(Space.xs))
-            Text(
-                deltaText,
-                color = Color.White.copy(alpha = 0.55f),
-                style = MaterialTheme.typography.labelSmall,
-            )
-            Spacer(Modifier.height(Space.xxl))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                CardAction(Icons.Rounded.AddCircle, "Add income", onTopUp)
-                CardAction(Icons.Rounded.RemoveCircle, "Add expense", onExpense)
-                CardAction(Icons.Rounded.History, "History", onHistory)
+
+            Spacer(Modifier.height(Space.lg))
+
+            // INCOME (left) | BALANCE (right) - smaller, no overlap
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Income", color = c.heroMuted, style = MaterialTheme.typography.labelSmall)
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        Money.format(income, symbol),
+                        color = incomeColor,
+                        fontSize = 24.sp,
+                        lineHeight = 30.sp,
+                        letterSpacing = (-0.5).sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                    )
+                }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Balance", color = c.heroMuted, style = MaterialTheme.typography.labelSmall)
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        Money.format(balance, symbol),
+                        color = balanceColor,
+                        fontSize = 28.sp,
+                        lineHeight = 34.sp,
+                        letterSpacing = (-1).sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                    )
+                }
+            }
+
+            if (showDelta) {
+                Spacer(Modifier.height(Space.xl))
+                SpPill(
+                    text = deltaText,
+                    color = deltaColor,
+                    background = deltaColor.copy(alpha = 0.14f),
+                    icon = when {
+                        spentLess -> Icons.Rounded.ArrowDownward
+                        else -> Icons.Rounded.ArrowUpward
+                    },
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                )
             }
         }
-    }
-}
-
-@Composable
-private fun CardAction(icon: ImageVector, label: String, onClick: () -> Unit) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .clip(RoundedCornerShape(Radius.md))
-            .clickable(onClick = onClick)
-            .padding(horizontal = Space.sm, vertical = Space.xs),
-    ) {
-        Box(
-            Modifier.size(44.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.12f)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(icon, label, tint = Color.White, modifier = Modifier.size(22.dp))
-        }
-        Spacer(Modifier.height(Space.xs))
-        Text(label, color = Color.White, style = MaterialTheme.typography.labelSmall)
     }
 }
 
@@ -225,11 +319,12 @@ fun DeleteDialog(name: String, onConfirm: () -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = c.cardElevated,
+        shape = RoundedCornerShape(Radius.xl),
         title = { Text("Delete transaction?") },
-        text = { Text("\"$name\" will be permanently removed.") },
+        text = { Text("\"$name\" will be permanently removed.", color = c.textSecondary) },
         confirmButton = {
             TextButton(onClick = onConfirm) { Text("Delete", color = c.expense) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel", color = c.textSecondary) } },
     )
 }

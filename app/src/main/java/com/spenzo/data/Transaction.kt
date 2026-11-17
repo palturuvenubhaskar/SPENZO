@@ -4,9 +4,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import com.spenzo.ui.theme.AccentGreen
-import com.spenzo.ui.theme.AccentOrange
-import com.spenzo.ui.theme.ExpenseRed
 
 enum class TxType {
     INCOME, EXPENSE;
@@ -17,20 +14,21 @@ enum class TxType {
     }
 }
 
-// Icon-based categories — sleek rounded icons matching modern design standards
+// Icon-based categories — one hue per category, tuned to read on both themes.
+// Mid-tone (500) colors stay legible as icon tints on white and on charcoal.
 enum class Category(val label: String, val icon: ImageVector, val color: Color) {
-    FOOD("Food",          Icons.Rounded.Restaurant,    AccentOrange),
-    TRANSPORT("Transport",Icons.Rounded.DirectionsCar, Color(0xFF3E7BFA)),
-    ENTERTAINMENT("Fun",  Icons.Rounded.SportsEsports, Color(0xFF9B5DE5)),
-    SHOPPING("Shopping",  Icons.Rounded.ShoppingBag,   Color(0xFFF15BB5)),
-    EDUCATION("Education",Icons.Rounded.School,        Color(0xFF00B4D8)),
-    HEALTH("Health",      Icons.Rounded.Favorite,      Color(0xFFEF476F)),
-    BILLS("Bills",        Icons.Rounded.Receipt,       Color(0xFF6C757D)),
-    OTHER("Other",        Icons.Rounded.Category,      Color(0xFF8A8D98)),
-    ALLOWANCE("Allowance",Icons.Rounded.Payments,      AccentGreen),
-    SALARY("Salary",      Icons.Rounded.Work,          AccentGreen),
-    GIFT("Gift",          Icons.Rounded.CardGiftcard,  AccentGreen),
-    OTHER_INCOME("Other income", Icons.Rounded.Savings, AccentGreen);
+    FOOD("Food",          Icons.Rounded.Restaurant,    Color(0xFFF59E0B)),
+    TRANSPORT("Transport",Icons.Rounded.DirectionsCar, Color(0xFF3B82F6)),
+    ENTERTAINMENT("Fun",  Icons.Rounded.SportsEsports, Color(0xFF8B5CF6)),
+    SHOPPING("Shopping",  Icons.Rounded.ShoppingBag,   Color(0xFFEC4899)),
+    EDUCATION("Education",Icons.Rounded.School,        Color(0xFF06B6D4)),
+    HEALTH("Health",      Icons.Rounded.Favorite,      Color(0xFFF43F5E)),
+    BILLS("Bills",        Icons.Rounded.Receipt,       Color(0xFF64748B)),
+    OTHER("Other",        Icons.Rounded.Category,      Color(0xFF94A3B8)),
+    ALLOWANCE("Allowance",Icons.Rounded.Payments,      Color(0xFF10B981)),
+    SALARY("Salary",      Icons.Rounded.Work,          Color(0xFF10B981)),
+    GIFT("Gift",          Icons.Rounded.CardGiftcard,  Color(0xFF10B981)),
+    OTHER_INCOME("Other income", Icons.Rounded.Savings, Color(0xFF10B981));
 
     companion object {
         fun fromName(name: String): Category = entries.firstOrNull { it.name == name } ?: OTHER

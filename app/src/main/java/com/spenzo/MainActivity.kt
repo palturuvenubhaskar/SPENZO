@@ -6,8 +6,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -17,16 +23,28 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.*
-import androidx.compose.material.icons.rounded.*
-import androidx.compose.material3.*
+import androidx.compose.material.icons.outlined.Analytics
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.ReceiptLong
+import androidx.compose.material.icons.outlined.ShowChart
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Analytics
+import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.ReceiptLong
+import androidx.compose.material.icons.rounded.ShowChart
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -78,46 +96,13 @@ class MainActivity : ComponentActivity() {
                         val currentRoute = backStack?.destination?.route
                         val isMainTab = currentRoute in mainTabs
 
-                        Scaffold(
-                            containerColor = SpTheme.colors.background,
-                            bottomBar = {
-                                AnimatedVisibility(
-                                    visible = isMainTab,
-                                    enter = slideInVertically(
-                                        initialOffsetY = { it },
-                                        animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
-                                    ) + fadeIn(),
-                                    exit = slideOutVertically(
-                                        targetOffsetY = { it },
-                                        animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
-                                    ) + fadeOut()
-                                ) {
-                                    SpenzoBottomBar(nav)
-                                }
-                            },
-                            floatingActionButton = {
-                                AnimatedVisibility(
-                                    visible = isMainTab,
-                                    enter = scaleIn() + fadeIn(),
-                                    exit = scaleOut() + fadeOut()
-                                ) {
-                                    FloatingActionButton(
-                                        onClick = { nav.navigate("add_edit?type=EXPENSE") },
-                                        containerColor = SpTheme.colors.primary,
-                                        contentColor = SpTheme.colors.onPrimary,
-                                        shape = CircleShape,
-                                    ) {
-                                        Icon(Icons.Rounded.Add, "Add transaction")
-                                    }
-                                }
-                            }
-                        ) { padding ->
+                        Box(Modifier.fillMaxSize()) {
                             NavHost(
                                 navController = nav,
                                 startDestination = "home",
-                                modifier = Modifier.padding(padding),
-                                // Screens own their insets: tabs pad the status bar,
-                                // screens with a TopAppBar let the app bar handle it.
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(bottom = 0.dp),
                             ) {
                                 composable("home") { HomeScreen(nav, vm) }
                                 composable("graphs") { GraphsScreen(vm) }
@@ -147,6 +132,13 @@ class MainActivity : ComponentActivity() {
                                     )
                                 }
                             }
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .align(Alignment.BottomCenter),
+                            ) {
+                                SpenzoBottomBar(nav, currentRoute, isMainTab)
+                            }
                         }
                     }
                 }
@@ -165,100 +157,158 @@ private data class NavItem(
 )
 
 @Composable
-private fun SpenzoBottomBar(nav: NavHostController) {
+private fun SpenzoBottomBar(
+    nav: NavHostController,
+    current: String?,
+    isMainTab: Boolean,
+) {
     val c = SpTheme.colors
+    val haptics = LocalHapticFeedback.current
+    // Modern, distinct icons for each tab
     val items = listOf(
         NavItem("home", Icons.Rounded.Home, Icons.Outlined.Home, "Home"),
-        NavItem("graphs", Icons.Rounded.BarChart, Icons.Outlined.BarChart, "Graphs"),
-        NavItem("analysis", Icons.Rounded.AutoGraph, Icons.Outlined.AutoGraph, "Analysis"),
-        NavItem("history", Icons.Rounded.History, Icons.Outlined.History, "History"),
+        NavItem("graphs", Icons.Rounded.ShowChart, Icons.Outlined.ShowChart, "Graphs"),
+        NavItem("analysis", Icons.Rounded.Analytics, Icons.Outlined.Analytics, "Analysis"),
+        NavItem("history", Icons.Rounded.ReceiptLong, Icons.Outlined.ReceiptLong, "History"),
     )
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .navigationBarsPadding()
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        contentAlignment = Alignment.Center,
+    AnimatedVisibility(
+        visible = isMainTab,
+        enter = slideInVertically(
+            initialOffsetY = { it },
+            animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+        ) + fadeIn(),
+        exit = slideOutVertically(
+            targetOffsetY = { it },
+            animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+        ) + fadeOut(),
     ) {
-        Surface(
-            shape = RoundedCornerShape(32.dp),
-            color = c.card,
-            shadowElevation = 6.dp,
-            border = BorderStroke(1.dp, c.border),
-            modifier = Modifier.fillMaxWidth().height(64.dp),
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = Space.lg, vertical = Space.sm),
+            contentAlignment = Alignment.Center,
         ) {
-            Row(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 6.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically,
+            Surface(
+                shape = RoundedCornerShape(28.dp),
+                color = c.card,
+                border = BorderStroke(1.dp, c.border),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(66.dp)
+                    .then(
+                        if (!c.isDark) Modifier.shadow(14.dp, RoundedCornerShape(28.dp), clip = false)
+                        else Modifier
+                    ),
             ) {
-                val backStack by nav.currentBackStackEntryAsState()
-                val current = backStack?.destination?.route
-
-                items.forEach { item ->
-                    val selected = current == item.route
-
-                    val scale by animateFloatAsState(
-                        targetValue = if (selected) 1.08f else 1.0f,
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow,
-                        ),
-                        label = "scale_${item.route}",
-                    )
-                    val pillBg by animateColorAsState(
-                        targetValue = if (selected) c.cardElevated else Color.Transparent,
-                        animationSpec = tween(200),
-                        label = "pill_${item.route}",
-                    )
-                    val tint by animateColorAsState(
-                        targetValue = if (selected) c.primary else c.textSecondary,
-                        animationSpec = tween(200),
-                        label = "tint_${item.route}",
-                    )
-
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .clip(RoundedCornerShape(22.dp))
-                            .background(pillBg)
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
-                            ) {
-                                if (current != item.route) {
-                                    nav.navigate(item.route) {
-                                        popUpTo(nav.graph.findStartDestination().id) { saveState = true }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                }
-                            }
-                            .padding(vertical = 4.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
-                    ) {
-                        Icon(
-                            imageVector = if (selected) item.activeIcon else item.inactiveIcon,
-                            contentDescription = null,
-                            tint = tint,
-                            modifier = Modifier
-                                .size(21.dp)
-                                .graphicsLayer(scaleX = scale, scaleY = scale),
-                        )
-                        Spacer(Modifier.height(2.dp))
-                        Text(
-                            text = item.label,
-                            color = tint,
-                            fontSize = 11.sp,
-                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                            maxLines = 1,
-                        )
-                    }
+                Row(
+                    modifier = Modifier.fillMaxSize().padding(horizontal = Space.sm, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    NavTab(items[0], current, nav, haptics)
+                    NavTab(items[1], current, nav, haptics)
+                    AddButton { nav.navigate("add_edit?type=EXPENSE") }
+                    NavTab(items[2], current, nav, haptics)
+                    NavTab(items[3], current, nav, haptics)
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun RowScope.NavTab(
+    item: NavItem,
+    current: String?,
+    nav: NavHostController,
+    haptics: androidx.compose.ui.hapticfeedback.HapticFeedback,
+) {
+    val c = SpTheme.colors
+    val selected = current == item.route
+    val bg by androidx.compose.animation.animateColorAsState(
+        targetValue = if (selected) c.primarySoft else Color.Transparent,
+        animationSpec = androidx.compose.animation.core.tween(180),
+        label = "tabBg${item.route}",
+    )
+    val tint by androidx.compose.animation.animateColorAsState(
+        targetValue = if (selected) c.primary else c.textSecondary,
+        animationSpec = androidx.compose.animation.core.tween(180),
+        label = "tabTint${item.route}",
+    )
+    val scale by animateFloatAsState(
+        targetValue = if (selected) 1.0f else 0.94f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        label = "tabScale${item.route}",
+    )
+
+    Column(
+        modifier = Modifier
+            .weight(1f)
+            .fillMaxHeight()
+            .clip(RoundedCornerShape(18.dp))
+            .background(bg)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+            ) {
+                if (!selected) {
+                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    nav.navigate(item.route) {
+                        popUpTo(nav.graph.findStartDestination().id) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+            },
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Icon(
+            imageVector = if (selected) item.activeIcon else item.inactiveIcon,
+            contentDescription = item.label,
+            tint = tint,
+            modifier = Modifier.size((21 * scale).dp),
+        )
+        Spacer(Modifier.height(2.dp))
+        Text(
+            text = item.label,
+            color = tint,
+            fontSize = 10.sp,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+            maxLines = 1,
+        )
+    }
+}
+
+@Composable
+private fun RowScope.AddButton(onClick: () -> Unit) {
+    val c = SpTheme.colors
+    val haptics = LocalHapticFeedback.current
+    Box(
+        Modifier.weight(1f).fillMaxHeight(),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            Modifier
+                .size(46.dp)
+                .then(
+                    if (!c.isDark) Modifier.shadow(8.dp, CircleShape, clip = false) else Modifier
+                )
+                .clip(CircleShape)
+                .background(c.primary)
+                .clickable {
+                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onClick()
+                },
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.Rounded.Add,
+                contentDescription = "Add transaction",
+                tint = c.onPrimary,
+                modifier = Modifier.size(24.dp),
+            )
         }
     }
 }

@@ -1,18 +1,22 @@
 package com.spenzo.ui.components
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -38,12 +42,23 @@ import com.spenzo.ui.theme.Radius
 import com.spenzo.ui.theme.Space
 import com.spenzo.ui.theme.SpTheme
 
+/** Hairline between rows inside a grouped card. */
+@Composable
+fun RowDivider(startIndent: Int = 0) {
+    val c = SpTheme.colors
+    HorizontalDivider(
+        modifier = Modifier.padding(start = startIndent.dp),
+        thickness = 1.dp,
+        color = c.border.copy(alpha = 0.7f),
+    )
+}
+
 /**
  * Shared transaction row.
  *
- * Tapping the row edits it (the destination is now visible), and the overflow
- * button opens Edit/Delete — previously the whole row silently opened a menu
- * with no affordance at all.
+ * Borderless by design: rows live inside one grouped card, so eight outlined
+ * cards in a row no longer fight each other. Tapping edits; the overflow menu
+ * deletes.
  */
 @Composable
 fun TransactionRow(
@@ -51,30 +66,32 @@ fun TransactionRow(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
+    showDate: Boolean = true,
 ) {
     val c = SpTheme.colors
     val symbol = LocalCurrencySymbol.current
     val category = Category.fromName(tx.category)
     val isExpense = tx.type == TxType.EXPENSE.name
     var menuOpen by remember { mutableStateOf(false) }
+    val subtitle = buildString {
+        append(if (tx.note.isNotBlank()) tx.note else category.label)
+        if (showDate) append(" · " + Dates.prettyDay(tx.timestamp))
+    }
 
     Row(
         modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(Radius.md))
-            .background(c.card)
-            .border(BorderStroke(1.dp, c.border), RoundedCornerShape(Radius.md))
-            .clickable(onClick = onEdit)
-            .padding(start = Space.md, top = Space.sm, bottom = Space.sm, end = 0.dp),
+            .clickable { onEdit() }
+            .padding(start = Space.md, top = Space.sm, bottom = Space.sm, end = Space.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            Modifier.size(40.dp).clip(CircleShape)
-                .background(category.color.copy(alpha = if (c.isDark) 0.18f else 0.12f)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(category.icon, category.label, tint = category.color, modifier = Modifier.size(20.dp))
-        }
+        IconBadge(
+            icon = category.icon,
+            tint = category.color,
+            size = 40.dp,
+            iconSize = 19.dp,
+        )
         Spacer(Modifier.width(Space.md))
         Column(Modifier.weight(1f)) {
             Text(
@@ -85,22 +102,28 @@ fun TransactionRow(
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                category.label + " · " + Dates.prettyDay(tx.timestamp),
+                subtitle,
                 style = MaterialTheme.typography.labelMedium,
                 color = c.textSecondary,
                 maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
         Spacer(Modifier.width(Space.sm))
         Text(
             Money.signed(tx.amount, symbol, isExpense),
             color = if (isExpense) c.expense else c.income,
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.Bold,
             style = MaterialTheme.typography.titleSmall,
         )
         Box {
-            IconButton(onClick = { menuOpen = true }, modifier = Modifier.size(48.dp)) {
-                Icon(Icons.Rounded.MoreVert, "More options", tint = c.textSecondary, modifier = Modifier.size(20.dp))
+            IconButton(onClick = { menuOpen = true }, modifier = Modifier.size(40.dp)) {
+                Icon(
+                    Icons.Rounded.MoreHoriz,
+                    "More options for ${tx.name}",
+                    tint = c.textTertiary,
+                    modifier = Modifier.size(19.dp),
+                )
             }
             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                 DropdownMenuItem(

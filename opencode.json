@@ -1,0 +1,13 @@
+{
+  "$schema": "https://opencode.ai",
+  "mcp": {
+    "better-design": {
+      "type": "local",
+      "command": ["better-design-mcp"],
+      "enabled": true,
+      "env": {
+        "BETTER_DESIGN_API_KEY": "{env:BETTER_DESIGN_API_KEY}"
+      }
+    }
+  }
+}
